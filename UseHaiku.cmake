@@ -21,7 +21,7 @@ endif()
 #
 #	Find the proper stdc++ library
 #
-find_library(LIBSTDCPP NAMES "stdc++" "stdc++.r4")
+find_library(HAIKU_LIBSTDCPP NAMES "stdc++" "stdc++.r4")
 
 
 #
