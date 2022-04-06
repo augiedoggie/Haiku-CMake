@@ -44,7 +44,7 @@ if(HAIKU_ENABLE_I18N)
 	  COMMAND "${CMAKE_COMMAND}" "-DCMAKE_INSTALL_COMPONENT=locales" "-P" "${CMAKE_BINARY_DIR}/cmake_install.cmake"
 	)
 
-	if (NOT DEFINED CMAKE_INSTALL_LOCALEDIR)
+	if(NOT DEFINED CMAKE_INSTALL_LOCALEDIR)
 		set(CMAKE_INSTALL_LOCALEDIR "data/locale")
 	endif()
 
@@ -57,7 +57,7 @@ endif()
 function(haiku_add_executable TARGET)
 
 	foreach(arg ${ARGN})
-		if (${arg} MATCHES ".*rdef$")
+		if(${arg} MATCHES ".*rdef$")
 			list(APPEND rdeflist ${arg})
 		elseif(${arg} MATCHES ".*rsrc$")
 			list(APPEND rsrclist "${CMAKE_CURRENT_SOURCE_DIR}/${arg}")
@@ -90,7 +90,7 @@ endfunction()
 function(haiku_add_addon TARGET)
 
 	foreach(arg ${ARGN})
-		if (${arg} MATCHES ".*rdef$")
+		if(${arg} MATCHES ".*rdef$")
 			list(APPEND rdeflist ${arg})
 		elseif(${arg} MATCHES ".*rsrc$")
 			list(APPEND rsrclist "${CMAKE_CURRENT_SOURCE_DIR}/${arg}")
