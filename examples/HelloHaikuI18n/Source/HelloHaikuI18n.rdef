@@ -1,0 +1,13 @@
+resource app_signature "application/x-vnd.Haiku-CMake-HelloHaikuI18n";
+
+resource app_version {
+	major  = 1,
+	middle = 0,
+	minor  = 0,
+
+	variety = B_APPV_FINAL,
+	internal = 0,
+
+	short_info = "HelloHaikuI18n",
+	long_info = "HelloHaikuI18n - UseHaiku.cmake i18n example"
+};
