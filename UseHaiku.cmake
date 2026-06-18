@@ -256,6 +256,10 @@ endfunction()
 #
 function(haiku_add_target_attr TARGET ANAME AVALUE)
 
+	if(NOT HAIKU_ENABLE_TARGET_ATTRS)
+		return()
+	endif()
+
 	haiku_require_program(HAIKU_ADDATTR_PROGRAM "addattr")
 
 	#TODO allow overriding the working diretory
