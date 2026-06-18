@@ -284,15 +284,15 @@ function(haiku_generate_base_catkeys TARGET)
 
 	add_custom_target(
 		"${TARGET}-generate-en.catkeys"
-		COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_SOURCE_DIR}/locales
+		COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_SOURCE_DIR}/locales/${TARGET}
 		COMMAND sh -c "${CMAKE_CXX_COMPILER} ${CMAKE_CXX_FLAGS} -I$<JOIN:$<TARGET_PROPERTY:${TARGET},INCLUDE_DIRECTORIES>, -I> -DB_COLLECTING_CATKEYS -DHAIKU_ENABLE_I18N -E ${CMAKE_CURRENT_SOURCE_DIR}/$<JOIN:$<TARGET_PROPERTY:${TARGET},SOURCES>, ${CMAKE_CURRENT_SOURCE_DIR}/> >${TARGET}.cpp.i"
 		COMMAND sh -c "grep -av '^#' ${TARGET}.cpp.i >${TARGET}.cpp.ck"
-		COMMAND "${HAIKU_COLLECTCATKEYS_PROGRAM}" -pvw -s ${SUBTYPE} -o $<TARGET_PROPERTY:${TARGET},SOURCE_DIR>/locales/en.catkeys ${TARGET}.cpp.ck
+		COMMAND "${HAIKU_COLLECTCATKEYS_PROGRAM}" -pvw -s ${SUBTYPE} -o $<TARGET_PROPERTY:${TARGET},SOURCE_DIR>/locales/${TARGET}/en.catkeys ${TARGET}.cpp.ck
 		COMMAND ${CMAKE_COMMAND} -E rm ${TARGET}.cpp.i ${TARGET}.cpp.ck
 		DEPENDS $<TARGET_PROPERTY:${TARGET},SOURCES>
 		VERBATIM
 		COMMAND_EXPAND_LISTS
-		COMMENT "Generating locales/en.catkeys for ${TARGET}")
+		COMMENT "Generating locales/${TARGET}/en.catkeys for ${TARGET}")
 
 	add_dependencies("catkeys" "${TARGET}-generate-en.catkeys")
 
@@ -315,7 +315,7 @@ function(haiku_compile_catalogs TARGET)
 
 	foreach(lang ${ARGN})
 		set(catalogoutput "${catalogspath}/${lang}.catalog")
-		set(catkeyspath "${CMAKE_CURRENT_SOURCE_DIR}/locales/${lang}.catkeys")
+		set(catkeyspath "${CMAKE_CURRENT_SOURCE_DIR}/locales/${TARGET}/${lang}.catkeys")
 
 		add_custom_command(
 			OUTPUT ${catalogoutput}
@@ -339,7 +339,7 @@ function(haiku_bind_catalogs TARGET)
 	haiku_require_program(HAIKU_LINKCATKEYS_PROGRAM "linkcatkeys")
 
 	foreach(lang ${ARGN})
-		set(catkeyspath "${CMAKE_CURRENT_SOURCE_DIR}/locales/${lang}.catkeys")
+		set(catkeyspath "${CMAKE_CURRENT_SOURCE_DIR}/locales/${TARGET}/${lang}.catkeys")
 
 		add_custom_target(
 			"${TARGET}-bind-${lang}.catalog"
