@@ -52,9 +52,9 @@ endif()
 
 
 #
-#	Convenience function to create an app with rdef/rsrc files
+#	Split a source list into real sources, .rdef files, and precompiled .rsrc files
 #
-function(haiku_add_executable TARGET)
+function(haiku_split_sources OUT_SOURCES OUT_RDEFS OUT_RSRCS)
 
 	foreach(arg ${ARGN})
 		if(${arg} MATCHES "\\.rdef$")
@@ -62,20 +62,29 @@ function(haiku_add_executable TARGET)
 		elseif(${arg} MATCHES "\\.rsrc$")
 			list(APPEND rsrclist "${CMAKE_CURRENT_SOURCE_DIR}/${arg}")
 		else()
-			list(APPEND REAL_SOURCES ${arg})
+			list(APPEND sourcelist ${arg})
 		endif()
 	endforeach()
 
-	# Call the original function with the filtered source list.
-	add_executable(${TARGET} ${REAL_SOURCES})
+	set("${OUT_SOURCES}" "${sourcelist}" PARENT_SCOPE)
+	set("${OUT_RDEFS}" "${rdeflist}" PARENT_SCOPE)
+	set("${OUT_RSRCS}" "${rsrclist}" PARENT_SCOPE)
 
-	# rdef/rsrc targets must be added after the main target has been created with _add_executable()
-	foreach(rdef ${rdeflist})
+endfunction()
+
+
+#
+#	Add rdef/rsrc resources to an already created target and finish it off with mimeset
+#
+function(haiku_finish_resource_target TARGET RDEFS RSRCS)
+
+	# rdef/rsrc targets must be added after the main target has been created with add_executable()/add_library()
+	foreach(rdef ${RDEFS})
 		haiku_add_resource_def(${TARGET} ${rdef})
 	endforeach()
 
 	# any precompiled resources that were given to us
-	foreach(rsrc ${rsrclist})
+	foreach(rsrc ${RSRCS})
 		haiku_add_resource(${TARGET} ${rsrc})
 	endforeach()
 
@@ -85,19 +94,26 @@ endfunction()
 
 
 #
+#	Convenience function to create an app with rdef/rsrc files
+#
+function(haiku_add_executable TARGET)
+
+	haiku_split_sources(REAL_SOURCES RDEFLIST RSRCLIST ${ARGN})
+
+	# Call the original function with the filtered source list.
+	add_executable(${TARGET} ${REAL_SOURCES})
+
+	haiku_finish_resource_target(${TARGET} "${RDEFLIST}" "${RSRCLIST}")
+
+endfunction()
+
+
+#
 #	Convenience function to create a shared object with rdef/rsrc files and no lib prefix or .so suffix
 #
 function(haiku_add_addon TARGET)
 
-	foreach(arg ${ARGN})
-		if(${arg} MATCHES "\\.rdef$")
-			list(APPEND rdeflist ${arg})
-		elseif(${arg} MATCHES "\\.rsrc$")
-			list(APPEND rsrclist "${CMAKE_CURRENT_SOURCE_DIR}/${arg}")
-		else()
-			list(APPEND REAL_SOURCES ${arg})
-		endif()
-	endforeach()
+	haiku_split_sources(REAL_SOURCES RDEFLIST RSRCLIST ${ARGN})
 
 	# Call the original function with the filtered source list.
 	add_library(${TARGET} MODULE ${REAL_SOURCES})
@@ -107,17 +123,7 @@ function(haiku_add_addon TARGET)
 		PREFIX ""
 		SUFFIX "")
 
-	# rdef/rsrc targets must be added after the main target has been created with _add_executable()
-	foreach(rdef ${rdeflist})
-		haiku_add_resource_def(${TARGET} ${rdef})
-	endforeach()
-
-	# any precompiled resources that were given to us
-	foreach(rsrc ${rsrclist})
-		haiku_add_resource(${TARGET} ${rsrc})
-	endforeach()
-
-	haiku_mimeset_target(${TARGET})
+	haiku_finish_resource_target(${TARGET} "${RDEFLIST}" "${RSRCLIST}")
 
 endfunction()
 
@@ -178,7 +184,7 @@ endfunction()
 
 
 #
-#	Compile a resource definition file(.rdef) to a resource file(.rsrc)
+#	Compile a resource definition file(.rdef) and add the result to a target
 #
 function(haiku_add_resource_def TARGET RDEF_SOURCE)
 
