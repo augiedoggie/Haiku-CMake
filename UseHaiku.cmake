@@ -10,10 +10,24 @@
 
 
 #
+#	Locate a required Haiku tool and fail clearly at configure time if it's missing
+#
+function(haiku_require_program OUTVAR NAME)
+
+	find_program("${OUTVAR}" NAMES "${NAME}")
+	if(NOT ${OUTVAR})
+		message(FATAL_ERROR "Required Haiku tool '${NAME}' was not found.")
+	endif()
+
+endfunction()
+
+
+#
 #	Use the standard non-packaged directory if no prefix was given to cmake
 #
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-	execute_process(COMMAND finddir B_USER_NONPACKAGED_DIRECTORY OUTPUT_VARIABLE B_PREFIX OUTPUT_STRIP_TRAILING_WHITESPACE)
+	haiku_require_program(HAIKU_FINDDIR_PROGRAM "finddir")
+	execute_process(COMMAND "${HAIKU_FINDDIR_PROGRAM}" B_USER_NONPACKAGED_DIRECTORY OUTPUT_VARIABLE B_PREFIX OUTPUT_STRIP_TRAILING_WHITESPACE)
 	set(CMAKE_INSTALL_PREFIX "${B_PREFIX}" CACHE PATH "Default non-packaged install path" FORCE)
 endif()
 
@@ -158,12 +172,13 @@ endfunction()
 #
 function(haiku_add_resource TARGET RSRC)
 
+	haiku_require_program(HAIKU_XRES_PROGRAM "xres")
 	get_filename_component(shortname ${RSRC} NAME)
 
 	add_custom_command(
 		TARGET ${TARGET}
 		POST_BUILD
-		COMMAND "xres" "-o" "$<TARGET_FILE:${TARGET}>" "${RSRC}"
+		COMMAND "${HAIKU_XRES_PROGRAM}" "-o" "$<TARGET_FILE:${TARGET}>" "${RSRC}"
 		COMMENT "Merging resources from ${shortname} into ${TARGET}")
 
 endfunction()
@@ -174,10 +189,12 @@ endfunction()
 #
 function(haiku_mimeset_target TARGET)
 
+	haiku_require_program(HAIKU_MIMESET_PROGRAM "mimeset")
+
 	add_custom_command(
 		TARGET ${TARGET}
 		POST_BUILD
-		COMMAND "mimeset" "-f" "$<TARGET_FILE:${TARGET}>"
+		COMMAND "${HAIKU_MIMESET_PROGRAM}" "-f" "$<TARGET_FILE:${TARGET}>"
 		COMMENT "Setting mimetype for ${TARGET}")
 
 endfunction()
@@ -207,6 +224,7 @@ endfunction()
 #
 function(haiku_compile_resource_def RDEF_SOURCE RSRC_OUT)
 
+	haiku_require_program(HAIKU_RC_PROGRAM "rc")
 	get_filename_component(shortname ${RDEF_SOURCE} NAME)
 	get_filename_component(rdefpath ${RDEF_SOURCE} ABSOLUTE)
 	get_filename_component(basename ${RDEF_SOURCE} NAME_WE)
@@ -217,7 +235,7 @@ function(haiku_compile_resource_def RDEF_SOURCE RSRC_OUT)
 	add_custom_command(
 		OUTPUT "${rsrcdir}/${rsrcfile}"
 		COMMAND "${CMAKE_COMMAND}" "-E" "make_directory" "${rsrcdir}"
-		COMMAND "rc" "-o" "${rsrcfile}" "${rdefpath}"
+		COMMAND "${HAIKU_RC_PROGRAM}" "-o" "${rsrcfile}" "${rdefpath}"
 		# avoid an extra relink under ninja by back-dating the .rsrc to the .rdef's mtime
 		# (other inputs, e.g. sources, can still trigger one harmless extra relink pass on Haiku)
 		COMMAND "touch" "-r" "${rdefpath}" "${rsrcfile}"
@@ -239,11 +257,13 @@ endfunction()
 #
 function(haiku_add_target_attr TARGET ANAME AVALUE)
 
+	haiku_require_program(HAIKU_ADDATTR_PROGRAM "addattr")
+
 	#TODO allow overriding the working diretory
 	add_custom_command(
 		TARGET ${TARGET}
 		POST_BUILD
-		COMMAND "addattr" "-t" "string" "${ANAME}" "${AVALUE}" "$<TARGET_FILE:${TARGET}>"
+		COMMAND "${HAIKU_ADDATTR_PROGRAM}" "-t" "string" "${ANAME}" "${AVALUE}" "$<TARGET_FILE:${TARGET}>"
 		WORKING_DIRECTORY $<TARGET_PROPERTY:${TARGET},SOURCE_DIR>
 		VERBATIM
 		COMMENT "Adding ${ANAME} BFS attribute to ${TARGET}")
@@ -256,6 +276,7 @@ endfunction()
 #
 function(haiku_generate_base_catkeys TARGET)
 
+	haiku_require_program(HAIKU_COLLECTCATKEYS_PROGRAM "collectcatkeys")
 	haiku_get_app_mime_subtype("${${TARGET}-APP_MIME_SIG}" SUBTYPE)
 
 	add_custom_target(
@@ -263,7 +284,7 @@ function(haiku_generate_base_catkeys TARGET)
 		COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_SOURCE_DIR}/locales
 		COMMAND sh -c "${CMAKE_CXX_COMPILER} ${CMAKE_CXX_FLAGS} -I$<JOIN:$<TARGET_PROPERTY:${TARGET},INCLUDE_DIRECTORIES>, -I> -DB_COLLECTING_CATKEYS -DHAIKU_ENABLE_I18N -E ${CMAKE_CURRENT_SOURCE_DIR}/$<JOIN:$<TARGET_PROPERTY:${TARGET},SOURCES>, ${CMAKE_CURRENT_SOURCE_DIR}/> >${TARGET}.cpp.i"
 		COMMAND sh -c "grep -av '^#' ${TARGET}.cpp.i >${TARGET}.cpp.ck"
-		COMMAND collectcatkeys -pvw -s ${SUBTYPE} -o $<TARGET_PROPERTY:${TARGET},SOURCE_DIR>/locales/en.catkeys ${TARGET}.cpp.ck
+		COMMAND "${HAIKU_COLLECTCATKEYS_PROGRAM}" -pvw -s ${SUBTYPE} -o $<TARGET_PROPERTY:${TARGET},SOURCE_DIR>/locales/en.catkeys ${TARGET}.cpp.ck
 		COMMAND ${CMAKE_COMMAND} -E rm ${TARGET}.cpp.i ${TARGET}.cpp.ck
 		DEPENDS $<TARGET_PROPERTY:${TARGET},SOURCES>
 		VERBATIM
@@ -280,6 +301,7 @@ endfunction()
 #
 function(haiku_compile_catalogs TARGET)
 
+	haiku_require_program(HAIKU_LINKCATKEYS_PROGRAM "linkcatkeys")
 	haiku_get_app_mime_subtype("${${TARGET}-APP_MIME_SIG}" SUBTYPE)
 
 	if(DEFINED HAIKU_CATALOG_BUILD_DIR)
@@ -295,7 +317,7 @@ function(haiku_compile_catalogs TARGET)
 		add_custom_command(
 			OUTPUT ${catalogoutput}
 			COMMAND "${CMAKE_COMMAND}" "-E" "make_directory" "${catalogspath}"
-			COMMAND "linkcatkeys" "-o" "${catalogoutput}" "-s" "${${TARGET}-APP_MIME_SIG}" "-l" "${lang}" "${catkeyspath}"
+			COMMAND "${HAIKU_LINKCATKEYS_PROGRAM}" "-o" "${catalogoutput}" "-s" "${${TARGET}-APP_MIME_SIG}" "-l" "${lang}" "${catkeyspath}"
 			DEPENDS ${catkeyspath}
 			COMMENT "Compiling ${lang}.catalog for ${TARGET}")
 
@@ -311,12 +333,14 @@ endfunction()
 #
 function(haiku_bind_catalogs TARGET)
 
+	haiku_require_program(HAIKU_LINKCATKEYS_PROGRAM "linkcatkeys")
+
 	foreach(lang ${ARGN})
 		set(catkeyspath "${CMAKE_CURRENT_SOURCE_DIR}/locales/${lang}.catkeys")
 
 		add_custom_target(
 			"${TARGET}-bind-${lang}.catalog"
-			COMMAND "linkcatkeys" "-o" "$<TARGET_FILE:${TARGET}>" "-s" "${${TARGET}-APP_MIME_SIG}" "-tr" "-l" "${lang}" "${catkeyspath}"
+			COMMAND "${HAIKU_LINKCATKEYS_PROGRAM}" "-o" "$<TARGET_FILE:${TARGET}>" "-s" "${${TARGET}-APP_MIME_SIG}" "-tr" "-l" "${lang}" "${catkeyspath}"
 			DEPENDS ${catkeyspath} ${TARGET}
 			COMMENT "Binding ${lang}.catalog to ${TARGET}")
 
