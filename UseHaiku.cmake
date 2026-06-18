@@ -190,14 +190,8 @@ function(haiku_add_resource_def TARGET RDEF_SOURCE)
 
 	haiku_add_resource(${TARGET} ${RSRC_OUT})
 
-	# somewhat ugly hack to avoid generating a dependency on the target
-	# like the regular $<TARGET_FILE> generator does
-	set(TARGET_PATH "$<TARGET_FILE_DIR:${TARGET}>/$<TARGET_FILE_NAME:${TARGET}>")
-	# remove the target(exe/lib) and force it to be rebuilt
-	add_custom_command(
-		OUTPUT "${RSRC_OUT}"
-		COMMAND "${CMAKE_COMMAND}" "-E" "remove" "-f" "${TARGET_PATH}"
-		APPEND)
+	# ensure the target is relinked whenever the compiled .rsrc changes
+	set_property(TARGET ${TARGET} APPEND PROPERTY LINK_DEPENDS "${RSRC_OUT}")
 
 endfunction()
 
@@ -217,6 +211,9 @@ function(haiku_compile_resource_def RDEF_SOURCE RSRC_OUT)
 	add_custom_command(
 		OUTPUT "${rsrcdir}/${rsrcfile}"
 		COMMAND "rc" "-o" "${rsrcfile}" "${rdefpath}"
+		# avoid an extra relink under ninja by back-dating the .rsrc to the .rdef's mtime
+		# (other inputs, e.g. sources, can still trigger one harmless extra relink pass on Haiku)
+		COMMAND "touch" "-r" "${rdefpath}" "${rsrcfile}"
 		DEPENDS ${rdefpath}
 		WORKING_DIRECTORY ${rsrcdir}
 		COMMENT "Compiling resource definition ${shortname}")
