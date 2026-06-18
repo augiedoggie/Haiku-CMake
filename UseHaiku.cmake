@@ -148,8 +148,7 @@ endfunction()
 function(haiku_add_i18n TARGET)
 
 	if(NOT DEFINED "${TARGET}-APP_MIME_SIG")
-		message(WARNING "No APP_MIME_SIG property for ${TARGET}. Using 'application/x-vnd.Foo-Bar'")
-		set("${TARGET}-APP_MIME_SIG" "application/x-vnd.Foo-Bar")
+		message(FATAL_ERROR "No APP_MIME_SIG property set for ${TARGET}. Set ${TARGET}-APP_MIME_SIG before calling haiku_add_i18n().")
 	endif()
 
 	if(NOT DEFINED "${TARGET}-LOCALES")
