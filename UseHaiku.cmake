@@ -243,7 +243,7 @@ function(haiku_add_target_attr TARGET ANAME AVALUE)
 	add_custom_command(
 		TARGET ${TARGET}
 		POST_BUILD
-		COMMAND sh -c "addattr -t string \"${ANAME}\" \"${AVALUE}\" '$<TARGET_FILE:${TARGET}>'"
+		COMMAND "addattr" "-t" "string" "${ANAME}" "${AVALUE}" "$<TARGET_FILE:${TARGET}>"
 		WORKING_DIRECTORY $<TARGET_PROPERTY:${TARGET},SOURCE_DIR>
 		VERBATIM
 		COMMENT "Adding ${ANAME} BFS attribute to ${TARGET}")
