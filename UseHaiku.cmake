@@ -349,14 +349,14 @@ function(haiku_get_app_mime_subtype APP_MIME_SIG OUTVAR)
 
 	# ensure that we have a shortened mimetype without the application/ prefix
 	# find the last / and split the mime string
-	string(FIND "${${TARGET}-APP_MIME_SIG}" "/" SUBPOS REVERSE)
+	string(FIND "${APP_MIME_SIG}" "/" SUBPOS REVERSE)
 	if("${SUBPOS}" EQUAL "-1")
-		set("${OUTVAR}" "${${TARGET}-APP_MIME_SIG}" PARENT_SCOPE)
+		set("${OUTVAR}" "${APP_MIME_SIG}" PARENT_SCOPE)
 		return()
 	endif()
 
 	math(EXPR SUBPOS "${SUBPOS}+1")
-	string(SUBSTRING "${${TARGET}-APP_MIME_SIG}" "${SUBPOS}+1" "-1" SUBTYPE)
+	string(SUBSTRING "${APP_MIME_SIG}" "${SUBPOS}" "-1" SUBTYPE)
 	set("${OUTVAR}" "${SUBTYPE}" PARENT_SCOPE)
 
 endfunction()
