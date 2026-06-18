@@ -216,6 +216,7 @@ function(haiku_compile_resource_def RDEF_SOURCE RSRC_OUT)
 
 	add_custom_command(
 		OUTPUT "${rsrcdir}/${rsrcfile}"
+		COMMAND "${CMAKE_COMMAND}" "-E" "make_directory" "${rsrcdir}"
 		COMMAND "rc" "-o" "${rsrcfile}" "${rdefpath}"
 		# avoid an extra relink under ninja by back-dating the .rsrc to the .rdef's mtime
 		# (other inputs, e.g. sources, can still trigger one harmless extra relink pass on Haiku)
